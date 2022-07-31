@@ -1,0 +1,99 @@
+version: "2.1"
+services:
+  qbittorrent:
+    image: linuxserver/qbittorrent
+    container_name: qbittorrent
+    volumes:
+      - /Users/wchen/Desktop/PersonalProject/PlexThings/AppData/qBittorrent/config:/config
+      - /Users/wchen/Desktop/PersonalProject/PlexThings/Downloads:/downloads
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Chicago
+      - WEBUI_PORT=8080
+    ports:
+      - 8080:8080
+      - 6881:6881
+      - 6881:6881/udp
+    restart: unless-stopped
+  overseerr:
+    image: lscr.io/linuxserver/overseerr:latest
+    container_name: overseerr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+    volumes:
+      - /Users/wchen/Desktop/PersonalProject/AppData/Overseerr/config:/config
+    ports:
+      - 5055:5055
+    restart: unless-stopped
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Chicago
+    volumes:
+      - /Users/wchen/Desktop/PersonalProject/AppData/Radarr/config:/config
+      - /Users/wchen/Desktop/PersonalProject/PlexThings/GoogleDrive/movies:/movies #optional
+      - /Users/wchen/Desktop/PersonalProject/PlexThings/Downloads:/downloads #optional
+    ports:
+      - 7878:7878
+    restart: unless-stopped
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Chicago
+    volumes:
+      - /Users/wchen/Desktop/PersonalProject/AppData/Sonarr/config:/config
+      - /Users/wchen/Desktop/PersonalProject/PlexThings/GoogleDrive/tv:/tv #optional
+      - /Users/wchen/Desktop/PersonalProject/PlexThings/Downloads:/downloads #optional
+    ports:
+      - 8989:8989
+    restart: unless-stopped
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:develop
+    container_name: prowlarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Chicago
+    volumes:
+      - /Users/wchen/Desktop/PersonalProject/AppData/Prowlarr/config:/config
+    ports:
+      - 9696:9696
+    restart: unless-stopped
+  # nginx:
+  #  image: linuxserver/nginx
+  #  container_name: nginx
+  #  environment:
+  #    - PUID=1000
+  #    - PGID=1000
+  #    - TZ=Europe/London
+  #  volumes:
+  #    - /home/user/appdata/nginx:/config
+  #  ports:
+  #    - 81:80
+  #    - 444:443
+  #  restart: unless-stopped
+
+### TODO ###
+# https://github.com/tubearchivist/tubearchivist
+# Books/Audiobooks
+
+
+### REFERENCE ###
+# linking docker containers automagically, do I configure ip statically? can I put config files for them?
+# use http://prowlarr:9696 instead of the assigned ip address
+
+# which application handles unraring and copying completed movies to the main folder
+# radarr and sonarr handle this (media management)
+
+# setup folder structure and mounting drives
+# rclone mount student-gdrive:Movies /Users/wchen/Desktop/PersonalProject/PlexThings/GoogleDrive/movies/ --uid 1000 --gid 1000 --allow-other --daemon
+# rclone mount student-gdrive:"TV Shows" /Users/wchen/Desktop/PersonalProject/PlexThings/GoogleDrive/tv/ --uid 1000 --gid 1000 --allow-other --daemon

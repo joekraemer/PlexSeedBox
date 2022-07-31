@@ -1,0 +1,121 @@
+#cloud-config
+ssh_deletekeys: false
+ssh_authorized_keys:
+- ssh-rsa xxxxxx imported-openssh-key
+cloud_final_modules:
+- [ssh, always]
+
+#!/bin/bash
+amazon-linux-extras install epel
+yum update -y
+yum install -y fuse telnet nload curl ntp
+yum install docker
+
+ntpdate time.windows.com # no command found
+
+# Downloading, installing, configuring rclone
+
+curl https://rclone.org/install.sh | sudo bash
+cat <<EOF >> $(rclone config file | tail -n 1)
+[student-gdrive]
+type = drive
+client_id = 
+client_secret = 
+token = {"access_token":"eyJ0b2tlbiI6IntcImFjY2Vzc190b2tlblwiOlwieWEyOS5BMEFWQTl5MXVfM0dhZGhnczhXT0RUY1ZQaWxPdHYzMnZDN015Tmk2N1V2OGJKcXRHZ2oyaW5wNThOUlVHT3diVlZiaWdsdVM0ZXhKelNUdTBnNEJVNGUwVHpRQld6OHRnWXBHQU9LZEdCdmlySXpxZmJHd2RVQVl0OVdxOEV2ZEpPTzhfRDhldktVa1pENTFMMjRqNUFMalJUc1poVFlVTm5XVXRCVkVGVFFWUkJVMFpSUlRZMVpISTRZalZ0WTB0ek4xWjJWVFJvTmpSVVJWZGpVbmxwWncwMTYzXCIsXCJ0b2tlbl90eXBlXCI6XCJCZWFyZXJcIixcInJlZnJlc2hfdG9rZW5cIjpcIjEvLzAzUWdOZEZBZExLUlRDZ1lJQVJBQUdBTVNOd0YtTDlJclM3UzZqck4tVWZtNWpSR0F4RlplS0dxQXRCNWNMWHhEdjAtbFA3UUlQZi1jbGhQSDdPeVlvX3ptcW04MWNjcTdJekVcIixcImV4cGlyeVwiOlwiMjAyMi0wNy0yNFQyMDowMToyNi42NDM2ODcrMDI6MDBcIn0ifQ"}
+EOF
+
+cat <<EOF >> /etc/rc.local
+rclone mount student-gdrive:Movies ~/data/media/movies/ --read-only --uid 1000 --gid 1000 --allow-other --daemon
+rclone mount student-gdrive:"TV Shows" ~/data/media/tv/ --read-only --uid 1000 --gid 1000 --allow-other --daemon
+EOF
+
+# Creating plex+tautulli container
+usermod -a -G docker ec2-user
+mkdir -p ~/data/plex ; mkdir -p ~/data/media/tv ; mkdir -p ~/data/media/movies
+chown -R ec2-user:ec2-user ~/data/media/ ; chown -R ec2-user:ec2-user ~/data/plex/
+mkdir ~/data/tautulli ; chown ec2-user:ec2-user ~/data/tautulli
+mkdir ~/data/Plex-Meta-Manager ; chown ec2-user:ec2-user ~/data/Plex-Meta-Manager
+systemctl enable docker ; service docker start # this needed sudo
+
+docker create \
+--name=plex \
+--net=host \
+-e VERSION=latest \
+-e PUID=$(id -u ec2-user) \
+-e PGID=$(id -g ec2-user) \
+-v ~/data/plex:/config \
+-v ~/data/media/tv:/data/tvshows \
+-v ~/data/media/movies:/data/movies \
+--restart unless-stopped linuxserver/plex
+docker start plex
+
+docker create \
+--name plex \
+--network=host \
+-e TZ="America/Chicago" \
+-e PUID=$(id -u ec2-user) \
+-e PGID=$(id -g ec2-user) \
+-e PLEX_CLAIM="claim-K4PtsyYT4Ln6F7PixC7g" \
+-v ~/data/plex:/config \
+-v ~/data/plex/transcode:/transcode \
+-v ~/data/media/tv:/data/tvshows \
+-v ~/data/media/movies:/data/movies \
+--restart unless-stopped plexinc/pms-docker
+docker start plex
+
+docker create \
+--name=tautulli \
+-e PUID=$(id -u ec2-user) -e PGID=$(id -g ec2-user) \
+-p 8181:8181 \
+-v ~/data/tautulli:/config \
+-v ~/data/plex/Library/Application\ Support/Plex\ Media\ Server/Logs:/logs \
+--restart unless-stopped linuxserver/tautulli
+docker start tautulli
+
+# Plex Meta Manager
+curl -fLvo ~/data/Plex-Meta-Manager/config.yml https://raw.githubusercontent.com/meisnate12/Plex-Meta-Manager/master/config/config.yml.template
+docker run -it -v ~/data/Plex-Meta-Manager:/config:rw meisnate12/plex-meta-manager
+
+# qBittorrent with PIA
+docker run -d --init --name=pia_qbittorrent --cap-add=NET_ADMIN -v /Volumes/Samsung_T5/PlexThings/qBittorrent/downloads:/downloads \
+-p 8888:8888 -e REGION="Netherlands" -e USER=p2473046 -e PASSWORD=CJnZMSAbc3 \
+j4ym0/pia-qbittorrent
+
+# Overseerr
+docker run -d \
+  --name=overseerr \
+  -e PUID=501 \
+  -e PGID=501 \
+  -e TZ=America/Chicago \
+  -p 5055:5055 \
+  -v /Volumes/Samsung_T5/PlexThings/Overseerr:/config \
+  --restart unless-stopped \
+  lscr.io/linuxserver/overseerr:latest
+
+# qBittorrent
+docker run -d \
+  --name=qbittorrent \
+  -e PUID=1000 \
+  -e PGID=1000 \
+  -e TZ=America/Chicago \
+  -e WEBUI_PORT=8080 \
+  -p 8080:8080 \
+  -p 6881:6881 \
+  -p 6881:6881/udp \
+  -v /Users/wchen/Desktop/PersonalProject/PlexThings/AppData/qBittorrent/config:/config \
+  -v /Users/wchen/Desktop/PersonalProject/PlexThings/Downloads:/downloads \
+  --restart unless-stopped \
+  lscr.io/linuxserver/qbittorrent:latest
+
+# qBittorrent with PIA
+docker run -d --init --name=pia_qbittorrent --cap-add=NET_ADMIN \
+-v /Users/wchen/Desktop/PersonalProject/PlexThings/Downloads:/downloads \
+-p 8888:8888 -e REGION="Netherlands" -e USER=p2473046 -e PASSWORD=CJnZMSAbc3 \
+j4ym0/pia-qbittorrent
+
+# TODO
+# Sonarr: tv series management
+# Radarr: movie management
+# Bazarr: subtitle management
+# Prowlarr: tracker management
+# https://github.com/tubearchivist/tubearchivist
