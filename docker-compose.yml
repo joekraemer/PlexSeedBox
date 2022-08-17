@@ -4,8 +4,11 @@ services:
     image: linuxserver/qbittorrent
     container_name: qbittorrent
     volumes:
-      - /Users/wchen/Desktop/PersonalProject/PlexThings/AppData/qBittorrent/config:/config
-      - /Users/wchen/Desktop/PersonalProject/PlexThings/Downloads:/downloads
+      #- /Users/wchen/Desktop/PersonalProject/PlexThings/AppData/qBittorrent/config:/config
+      #- /Users/wchen/Desktop/PersonalProject/PlexThings/Downloads:/downloads
+      - C:\Users\joek\Desktop\PlexSeed\AppData\qBittorrent\config:/config
+      - C:\Users\joek\Desktop\PlexSeed\Downloads:/downloads
+      - G:\TorrentStuff:/remote
     environment:
       - PUID=1000
       - PGID=1000
@@ -24,7 +27,8 @@ services:
       - PGID=1000
       - TZ=America/New_York
     volumes:
-      - /Users/wchen/Desktop/PersonalProject/AppData/Overseerr/config:/config
+      #- /Users/wchen/Desktop/PersonalProject/AppData/Overseerr/config:/config
+      - C:\Users\joek\Desktop\PlexSeed\AppData\Overseerr\config:/config
     ports:
       - 5055:5055
     restart: unless-stopped
@@ -36,9 +40,13 @@ services:
       - PGID=1000
       - TZ=America/Chicago
     volumes:
-      - /Users/wchen/Desktop/PersonalProject/AppData/Radarr/config:/config
-      - /Users/wchen/Desktop/PersonalProject/PlexThings/GoogleDrive/movies:/movies #optional
-      - /Users/wchen/Desktop/PersonalProject/PlexThings/Downloads:/downloads #optional
+      #- /Users/wchen/Desktop/PersonalProject/AppData/Radarr/config:/config
+      #- /Users/wchen/Desktop/PersonalProject/PlexThings/GoogleDrive/movies:/movies #optional
+      #- /Users/wchen/Desktop/PersonalProject/PlexThings/Downloads:/downloads #optional
+      - C:\Users\joek\Desktop\PlexSeed\AppData\Radarr\config:/config
+      - C:\Users\joek\Desktop\PlexSeed\GoogleDrive\movies:/movies #optional
+      - C:\Users\joek\Desktop\PlexSeed\Downloads:/downloads #optional
+      - G:\TorrentStuff:/remote
     ports:
       - 7878:7878
     restart: unless-stopped
@@ -50,9 +58,13 @@ services:
       - PGID=1000
       - TZ=America/Chicago
     volumes:
-      - /Users/wchen/Desktop/PersonalProject/AppData/Sonarr/config:/config
-      - /Users/wchen/Desktop/PersonalProject/PlexThings/GoogleDrive/tv:/tv #optional
-      - /Users/wchen/Desktop/PersonalProject/PlexThings/Downloads:/downloads #optional
+      #- /Users/wchen/Desktop/PersonalProject/AppData/Sonarr/config:/config
+      #- /Users/wchen/Desktop/PersonalProject/PlexThings/GoogleDrive/tv:/tv #optional
+      #- /Users/wchen/Desktop/PersonalProject/PlexThings/Downloads:/downloads #optional
+      - C:\Users\joek\Desktop\PlexSeed\AppData\Sonarr\config:/config
+      - C:\Users\joek\Desktop\PlexSeed\GoogleDrive\tv:/tv #optional
+      - C:\Users\joek\Desktop\PlexSeed\Downloads:/downloads #optional
+      - G:\TorrentStuff:/remote
     ports:
       - 8989:8989
     restart: unless-stopped
@@ -64,10 +76,29 @@ services:
       - PGID=1000
       - TZ=America/Chicago
     volumes:
-      - /Users/wchen/Desktop/PersonalProject/AppData/Prowlarr/config:/config
+      # - /Users/wchen/Desktop/PersonalProject/AppData/Prowlarr/config:/config
+      - C:\Users\joek\Desktop\PlexSeed\AppData\Prowlarr\config:/config
     ports:
       - 9696:9696
     restart: unless-stopped
+  # pia-qbittorrent:
+  #   image: j4ym0/pia-qbittorrent
+  #   container_name: pia-qbittorrent
+  #   cap_add:
+  #       - NET_ADMIN
+  #   environment:
+  #       - REGION=Netherlands
+  #       - USER=p2473046
+  #       - PASSWORD=CJnZMSAbc3
+  #   volumes:
+  #     - C:\Users\joek\Desktop\PlexSeed\AppData\qBittorrent\config:/config
+  #     - C:\Users\joek\Desktop\PlexSeed\Downloads:/downloads
+  #   ports:
+  #       - 8888:8888
+  #       - 8080:8080
+  #       - 6881:6881
+  #       - 6881:6881/udp
+  #   restart: unless-stopped
   # nginx:
   #  image: linuxserver/nginx
   #  container_name: nginx
@@ -97,3 +128,12 @@ services:
 # setup folder structure and mounting drives
 # rclone mount student-gdrive:Movies /Users/wchen/Desktop/PersonalProject/PlexThings/GoogleDrive/movies/ --uid 1000 --gid 1000 --allow-other --daemon
 # rclone mount student-gdrive:"TV Shows" /Users/wchen/Desktop/PersonalProject/PlexThings/GoogleDrive/tv/ --uid 1000 --gid 1000 --allow-other --daemon
+
+# setup folder structure and mounting drives WINDOWS needs to be run from rclone install folder, no daemon
+# rclone mount student-gdrive:Movies M:
+# rclone mount student-gdrive:"TV Shows" T:
+
+
+# unraring files, call this in the directory
+# https://superuser.com/questions/1679910/how-to-extract-a-multi-part-rar-file-on-the-shell-on-ubuntu
+# unrar x "*.*.rar"
